@@ -1,0 +1,82 @@
+"use client";
+
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { identificationSchema, type IdentificationValues } from "@/lib/validation/wizard";
+import { Field, PrimaryButton, SecondaryButton, StepHeading, TextInput } from "./ui";
+
+export default function StepIdentification({
+  proposalId,
+  onBack,
+  onSubmitted,
+}: {
+  proposalId: string;
+  onBack: () => void;
+  onSubmitted: () => void;
+}) {
+  const [serverError, setServerError] = useState<string | null>(null);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<IdentificationValues>({ resolver: zodResolver(identificationSchema) });
+
+  async function onSubmit(values: IdentificationValues) {
+    setServerError(null);
+    const res = await fetch(`/api/seleccion/proposals/${proposalId}/submit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(values),
+    });
+    if (!res.ok) {
+      const body = await res.json();
+      if (body.missing_fields?.length || body.missing_master_plan || body.missing_referente) {
+        setServerError(
+          "La propuesta está incompleta. Revisa que hayas diligenciado las 3 secciones y subido el Master Plan y al menos un referente."
+        );
+      } else {
+        setServerError(body.error ?? "No se pudo enviar la propuesta.");
+      }
+      return;
+    }
+    onSubmitted();
+  }
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <StepHeading
+        title="Formulario de identificación"
+        description="Estos datos se guardan por separado del contenido de su propuesta y solo son visibles para los socios una vez cerrada la evaluación anónima."
+      />
+
+      <div className="space-y-5">
+        <Field label="Nombre de la firma" error={errors.firm_name?.message}>
+          <TextInput {...register("firm_name")} />
+        </Field>
+        <Field label="Nombre de contacto" error={errors.contact_name?.message}>
+          <TextInput {...register("contact_name")} />
+        </Field>
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <Field label="Correo" error={errors.email?.message}>
+            <TextInput type="email" {...register("email")} />
+          </Field>
+          <Field label="Teléfono" error={errors.phone?.message}>
+            <TextInput {...register("phone")} />
+          </Field>
+        </div>
+      </div>
+
+      {serverError && <p className="mt-4 text-sm text-red-600">{serverError}</p>}
+
+      <div className="mt-8 flex justify-between">
+        <SecondaryButton type="button" onClick={onBack}>
+          Atrás
+        </SecondaryButton>
+        <PrimaryButton type="submit" loading={isSubmitting}>
+          Enviar propuesta
+        </PrimaryButton>
+      </div>
+    </form>
+  );
+}
