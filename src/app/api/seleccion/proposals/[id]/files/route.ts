@@ -1,29 +1,15 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getClientIp, withinRateLimit } from "@/lib/rate-limit";
+import { ALLOWED_EXTENSIONS, ALLOWED_KINDS, BUCKET, extensionOf } from "@/lib/uploads";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
-const ALLOWED_KINDS = ["concepto", "masterplan", "volumetria", "proyecto"];
-const MAX_SIZE_BYTES = 50 * 1024 * 1024; // 50MB
-// Solo se aceptan formatos de entrega esperados (planos, imágenes, PDF, CAD,
-// comprimidos). Se valida por extensión porque el content-type lo pone el cliente.
-const ALLOWED_EXTENSIONS = [
-  "pdf",
-  "jpg",
-  "jpeg",
-  "png",
-  "webp",
-  "gif",
-  "tif",
-  "tiff",
-  "dwg",
-  "dxf",
-  "zip",
-  "rar",
-  "7z",
-];
-
+/**
+ * Registra un archivo YA subido directo a Supabase Storage (ver /files/sign).
+ * Recibe solo metadatos en JSON, nunca los bytes: así se evita el límite de
+ * ~4.5 MB que Vercel impone al cuerpo de las funciones serverless.
+ */
 export async function POST(req: Request, { params }: RouteParams) {
   const { id } = await params;
 
@@ -49,40 +35,45 @@ export async function POST(req: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "Esta propuesta ya fue enviada." }, { status: 409 });
   }
 
-  const formData = await req.formData();
-  const file = formData.get("file");
-  const kind = String(formData.get("kind") ?? "");
+  let body: { kind?: string; storage_path?: string; file_name?: string };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Solicitud inválida." }, { status: 400 });
+  }
 
-  if (!(file instanceof File)) {
-    return NextResponse.json({ error: "Archivo requerido." }, { status: 422 });
-  }
+  const kind = String(body.kind ?? "");
+  const storagePath = String(body.storage_path ?? "");
+  const fileName = String(body.file_name ?? "");
+
   if (!ALLOWED_KINDS.includes(kind)) {
-    return NextResponse.json({ error: "Tipo de archivo inválido." }, { status: 422 });
+    return NextResponse.json({ error: "Sección de archivo inválida." }, { status: 422 });
   }
-  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
-  if (!ALLOWED_EXTENSIONS.includes(ext)) {
+  if (!ALLOWED_EXTENSIONS.includes(extensionOf(fileName))) {
+    return NextResponse.json({ error: "Formato no permitido." }, { status: 422 });
+  }
+  // La ruta debe pertenecer a esta propuesta: evita registrar objetos ajenos.
+  if (!storagePath.startsWith(`${id}/`)) {
+    return NextResponse.json({ error: "Ruta de archivo inválida." }, { status: 422 });
+  }
+
+  // El objeto debe existir realmente en Storage antes de registrarlo.
+  const { data: found, error: listError } = await supabase.storage
+    .from(BUCKET)
+    .list(id, { search: storagePath.slice(id.length + 1) });
+  if (listError) {
+    return NextResponse.json({ error: listError.message }, { status: 500 });
+  }
+  if (!found || found.length === 0) {
     return NextResponse.json(
-      { error: `Formato no permitido (.${ext}). Use PDF, imágenes, DWG/DXF o ZIP.` },
+      { error: "El archivo no se encontró en el almacenamiento." },
       { status: 422 }
     );
-  }
-  if (file.size > MAX_SIZE_BYTES) {
-    return NextResponse.json({ error: "El archivo supera 50MB." }, { status: 422 });
-  }
-
-  const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
-  const storagePath = `${id}/${crypto.randomUUID()}-${safeName}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from("seleccion-nauno-files")
-    .upload(storagePath, file, { contentType: file.type });
-  if (uploadError) {
-    return NextResponse.json({ error: uploadError.message }, { status: 500 });
   }
 
   const { data: fileRow, error: insertError } = await supabase
     .from("proposal_files")
-    .insert({ proposal_id: id, kind, storage_path: storagePath, file_name: file.name })
+    .insert({ proposal_id: id, kind, storage_path: storagePath, file_name: fileName })
     .select("*")
     .single();
   if (insertError) {
@@ -119,7 +110,7 @@ export async function DELETE(req: Request, { params }: RouteParams) {
     .single();
   if (!fileRow) return NextResponse.json({ error: "Archivo no encontrado." }, { status: 404 });
 
-  await supabase.storage.from("seleccion-nauno-files").remove([fileRow.storage_path]);
+  await supabase.storage.from(BUCKET).remove([fileRow.storage_path]);
   await supabase.from("proposal_files").delete().eq("id", fileId);
 
   return NextResponse.json({ ok: true });
