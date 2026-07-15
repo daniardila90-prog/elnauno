@@ -14,7 +14,15 @@ const supabase = createClient(url, serviceRoleKey, {
 });
 
 const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL ?? "socios@elnauno.co";
-const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD ?? "NaunoSeleccion2026!";
+// La contraseña NUNCA se hardcodea: debe venir de una variable de entorno.
+const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD;
+if (!ADMIN_PASSWORD) {
+  console.error(
+    "Falta SEED_ADMIN_PASSWORD en el entorno. Ejecuta con:\n" +
+      "  SEED_ADMIN_PASSWORD='una-contraseña-fuerte' node --env-file=.env.local supabase/seed/seed.mjs"
+  );
+  process.exit(1);
+}
 
 async function ensureAdmin() {
   const { data: existing } = await supabase.auth.admin.listUsers();
@@ -28,7 +36,7 @@ async function ensureAdmin() {
     });
     if (error) throw error;
     user = data.user;
-    console.log(`Usuario admin creado: ${ADMIN_EMAIL} / ${ADMIN_PASSWORD}`);
+    console.log(`Usuario admin creado: ${ADMIN_EMAIL} (contraseña tomada de SEED_ADMIN_PASSWORD).`);
   } else {
     console.log(`Usuario admin ya existía: ${ADMIN_EMAIL}`);
   }
@@ -155,7 +163,7 @@ async function main() {
   const adminId = await ensureAdmin();
   await seedProposals();
   console.log("\nSeed completo.");
-  console.log(`Login socios → ${ADMIN_EMAIL} / ${ADMIN_PASSWORD}`);
+  console.log(`Login socios → ${ADMIN_EMAIL} (usa la contraseña que definiste en SEED_ADMIN_PASSWORD).`);
   console.log(`Admin user_id: ${adminId}`);
 }
 

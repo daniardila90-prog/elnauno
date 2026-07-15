@@ -31,7 +31,10 @@ export default async function ProposalDetailPage({
     ((files as ProposalFile[] | null) ?? []).map(async (f) => {
       const { data: signed } = await supabase.storage
         .from("seleccion-nauno-files")
-        .createSignedUrl(f.storage_path, 60 * 10);
+        // download: fuerza Content-Disposition: attachment para que el archivo
+        // se descargue en vez de renderizarse en el navegador (evita XSS por
+        // HTML/SVG malicioso servido desde el dominio de Storage).
+        .createSignedUrl(f.storage_path, 60 * 10, { download: f.file_name });
       return { ...f, url: signed?.signedUrl ?? null };
     })
   );

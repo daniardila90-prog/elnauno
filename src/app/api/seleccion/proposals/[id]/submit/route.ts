@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { identificationSchema } from "@/lib/validation/wizard";
+import { getClientIp, withinRateLimit } from "@/lib/rate-limit";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -18,22 +19,25 @@ const REQUIRED_PROPOSAL_FIELDS = [
 
 export async function POST(req: Request, { params }: RouteParams) {
   const { id } = await params;
+
+  // Límite: máx. 20 envíos por hora por IP.
+  const allowed = await withinRateLimit(`submit:${getClientIp(req)}`, 20, 3600);
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "Demasiadas solicitudes. Intenta de nuevo más tarde." },
+      { status: 429 }
+    );
+  }
+
   const body = await req.json();
   const parsed = identificationSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 422 });
   }
 
-  // Solo las firmas invitadas pueden enviar: se valida el código de invitación
-  // contra la variable de entorno del servidor (nunca expuesta al cliente).
-  const expectedCode = (process.env.SELECCION_ACCESS_CODE ?? "").trim();
-  if (!expectedCode || parsed.data.access_code.trim() !== expectedCode) {
-    return NextResponse.json(
-      { error: "Código de invitación inválido.", invalid_code: true },
-      { status: 403 }
-    );
-  }
-
+  // El código de invitación ya se validó al crear la propuesta (POST /proposals);
+  // una propuesta no puede existir sin haber pasado ese control, así que aquí no
+  // se vuelve a pedir.
   const supabase = createAdminClient();
 
   const { data: proposal, error: fetchError } = await supabase

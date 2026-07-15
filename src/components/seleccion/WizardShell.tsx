@@ -43,11 +43,21 @@ export default function WizardShell() {
     }
   }, []);
 
-  async function ensureProposal() {
+  async function ensureProposal(accessCode: string) {
     if (proposalId) return { id: proposalId, code: proposalCode! };
     setCreating(true);
     try {
-      const res = await fetch("/api/seleccion/proposals", { method: "POST" });
+      const res = await fetch("/api/seleccion/proposals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ access_code: accessCode }),
+      });
+      if (res.status === 403) {
+        const body = await res.json().catch(() => ({}));
+        const err = new Error(body.error ?? "Código de invitación inválido.");
+        (err as Error & { invalidCode?: boolean }).invalidCode = true;
+        throw err;
+      }
       if (!res.ok) throw new Error("No se pudo crear la propuesta.");
       const data = await res.json();
       setProposalId(data.id);
@@ -94,8 +104,8 @@ export default function WizardShell() {
               <StepCode
                 proposalCode={proposalCode}
                 creating={creating}
-                onStart={async () => {
-                  await ensureProposal();
+                onStart={async (accessCode) => {
+                  await ensureProposal(accessCode);
                   goNext();
                 }}
               />

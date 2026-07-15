@@ -44,6 +44,5 @@ export const identificationSchema = z.object({
   contact_name: z.string().min(1, "Nombre de contacto requerido."),
   email: z.string().email("Correo inválido."),
   phone: z.string().min(1, "Teléfono requerido."),
-  access_code: z.string().min(1, "Ingresa el código de invitación."),
 });
 export type IdentificationValues = z.infer<typeof identificationSchema>;

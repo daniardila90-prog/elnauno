@@ -1,13 +1,40 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getClientIp, withinRateLimit } from "@/lib/rate-limit";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
 const ALLOWED_KINDS = ["concepto", "masterplan", "volumetria", "proyecto"];
 const MAX_SIZE_BYTES = 50 * 1024 * 1024; // 50MB
+// Solo se aceptan formatos de entrega esperados (planos, imágenes, PDF, CAD,
+// comprimidos). Se valida por extensión porque el content-type lo pone el cliente.
+const ALLOWED_EXTENSIONS = [
+  "pdf",
+  "jpg",
+  "jpeg",
+  "png",
+  "webp",
+  "gif",
+  "tif",
+  "tiff",
+  "dwg",
+  "dxf",
+  "zip",
+  "rar",
+  "7z",
+];
 
 export async function POST(req: Request, { params }: RouteParams) {
   const { id } = await params;
+
+  const ip = getClientIp(req);
+  if (!(await withinRateLimit(`upload:${ip}`, 80, 600))) {
+    return NextResponse.json(
+      { error: "Demasiadas subidas. Espera unos minutos e inténtalo de nuevo." },
+      { status: 429 }
+    );
+  }
+
   const supabase = createAdminClient();
 
   const { data: proposal } = await supabase
@@ -31,6 +58,13 @@ export async function POST(req: Request, { params }: RouteParams) {
   }
   if (!ALLOWED_KINDS.includes(kind)) {
     return NextResponse.json({ error: "Tipo de archivo inválido." }, { status: 422 });
+  }
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+  if (!ALLOWED_EXTENSIONS.includes(ext)) {
+    return NextResponse.json(
+      { error: `Formato no permitido (.${ext}). Use PDF, imágenes, DWG/DXF o ZIP.` },
+      { status: 422 }
+    );
   }
   if (file.size > MAX_SIZE_BYTES) {
     return NextResponse.json({ error: "El archivo supera 50MB." }, { status: 422 });
