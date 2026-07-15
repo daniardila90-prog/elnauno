@@ -3,16 +3,21 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import type { Proposal } from "@/lib/supabase/types";
 import { sitioSchema, type SitioValues } from "@/lib/validation/wizard";
 import { Field, PrimaryButton, SecondaryButton, StepHeading, TextArea } from "./ui";
 import FileUploadList from "./FileUploadList";
 
 export default function StepSitio({
   proposalId,
+  initial,
+  onSaved,
   onNext,
   onBack,
 }: {
   proposalId: string;
+  initial: Proposal | null;
+  onSaved: (values: Partial<Proposal>) => void;
   onNext: () => void;
   onBack: () => void;
 }) {
@@ -21,7 +26,13 @@ export default function StepSitio({
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<SitioValues>({ resolver: zodResolver(sitioSchema) });
+  } = useForm<SitioValues>({
+    resolver: zodResolver(sitioSchema),
+    defaultValues: {
+      sitio_oportunidades: initial?.sitio_oportunidades ?? "",
+      sitio_condicionantes: initial?.sitio_condicionantes ?? "",
+    },
+  });
 
   async function onSubmit(values: SitioValues) {
     setServerError(null);
@@ -34,6 +45,7 @@ export default function StepSitio({
       setServerError("No se pudo guardar. Intenta de nuevo.");
       return;
     }
+    onSaved(values);
     onNext();
   }
 

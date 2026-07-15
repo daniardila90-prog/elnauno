@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
+import type { Proposal } from "@/lib/supabase/types";
 import StepCode from "./StepCode";
 import StepConcepto from "./StepConcepto";
 import StepSitio from "./StepSitio";
@@ -11,6 +12,7 @@ import StepFachada from "./StepFachada";
 import StepImagen from "./StepImagen";
 import StepFases from "./StepFases";
 import StepIdentification from "./StepIdentification";
+import ResumeLink from "./ResumeLink";
 
 const STEPS = [
   "Inicio",
@@ -25,23 +27,92 @@ const STEPS = [
 
 const STORAGE_KEY = "nauno-seleccion-draft";
 
+type Draft = { id: string; code: string; step?: number };
+
 export default function WizardShell() {
   const router = useRouter();
   const [stepIndex, setStepIndex] = useState(0);
   const [proposalId, setProposalId] = useState<string | null>(null);
   const [proposalCode, setProposalCode] = useState<string | null>(null);
+  const [proposal, setProposal] = useState<Proposal | null>(null);
   const [creating, setCreating] = useState(false);
+  const [restoring, setRestoring] = useState(true);
   const [direction, setDirection] = useState(1);
 
-  useEffect(() => {
-    const saved = sessionStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const { id, code } = JSON.parse(saved);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setProposalId(id);
-      setProposalCode(code);
+  /** Guarda la referencia del borrador para poder retomarlo más tarde. */
+  const persist = useCallback((draft: Draft) => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
+    } catch {
+      /* almacenamiento no disponible: el enlace privado sigue funcionando */
     }
   }, []);
+
+  /** Carga la propuesta guardada (por ?id= en la URL o por el navegador). */
+  useEffect(() => {
+    let cancelled = false;
+
+    async function restore() {
+      let id: string | null = null;
+      let savedStep = 0;
+
+      // 1) Enlace privado: ?id=<uuid> tiene prioridad (permite retomar en otro equipo)
+      const fromUrl = new URLSearchParams(window.location.search).get("id");
+      if (fromUrl) {
+        id = fromUrl;
+      } else {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            const d: Draft = JSON.parse(raw);
+            id = d.id;
+            savedStep = d.step ?? 0;
+          }
+        } catch {
+          /* ignorar */
+        }
+      }
+
+      if (!id) {
+        if (!cancelled) setRestoring(false);
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/seleccion/proposals/${id}`);
+        if (!res.ok) throw new Error("no encontrada");
+        const { proposal: p } = (await res.json()) as { proposal: Proposal };
+        if (cancelled) return;
+
+        // Si ya fue enviada no se puede seguir editando: empezamos de cero.
+        if (p.status === "submitted") {
+          localStorage.removeItem(STORAGE_KEY);
+          setRestoring(false);
+          return;
+        }
+
+        setProposal(p);
+        setProposalId(p.id);
+        setProposalCode(p.proposal_code);
+        setStepIndex(Math.min(Math.max(savedStep, 1), STEPS.length - 1));
+        persist({ id: p.id, code: p.proposal_code, step: Math.max(savedStep, 1) });
+      } catch {
+        // Borrador inexistente o borrado: arrancamos limpio.
+        try {
+          localStorage.removeItem(STORAGE_KEY);
+        } catch {
+          /* ignorar */
+        }
+      } finally {
+        if (!cancelled) setRestoring(false);
+      }
+    }
+
+    restore();
+    return () => {
+      cancelled = true;
+    };
+  }, [persist]);
 
   async function ensureProposal(accessCode: string) {
     if (proposalId) return { id: proposalId, code: proposalCode! };
@@ -62,35 +133,53 @@ export default function WizardShell() {
       const data = await res.json();
       setProposalId(data.id);
       setProposalCode(data.proposal_code);
-      sessionStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({ id: data.id, code: data.proposal_code })
-      );
+      persist({ id: data.id, code: data.proposal_code, step: 1 });
       return { id: data.id as string, code: data.proposal_code as string };
     } finally {
       setCreating(false);
     }
   }
 
-  function goNext() {
-    setDirection(1);
-    setStepIndex((i) => Math.min(i + 1, STEPS.length - 1));
-  }
-  function goBack() {
-    setDirection(-1);
-    setStepIndex((i) => Math.max(i - 1, 0));
+  /** Mezcla lo recién guardado para que al volver atrás se vea el contenido. */
+  function handleSaved(values: Partial<Proposal>) {
+    setProposal((p) => ({ ...(p ?? ({} as Proposal)), ...values }));
   }
 
+  function goTo(next: number, dir: number) {
+    setDirection(dir);
+    setStepIndex(next);
+    if (proposalId && proposalCode) {
+      persist({ id: proposalId, code: proposalCode, step: next });
+    }
+  }
+
+  const goNext = () => goTo(Math.min(stepIndex + 1, STEPS.length - 1), 1);
+  const goBack = () => goTo(Math.max(stepIndex - 1, 0), -1);
+
   function handleSubmitted() {
-    sessionStorage.removeItem(STORAGE_KEY);
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      /* ignorar */
+    }
     router.push(`/seleccion/participar/confirmacion?code=${proposalCode}`);
+  }
+
+  if (restoring) {
+    return (
+      <div className="mx-auto w-full max-w-2xl px-4 py-20 text-center">
+        <p className="text-sm text-forest/50">Cargando…</p>
+      </div>
+    );
   }
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-10 sm:py-16">
       <ProgressBar current={stepIndex} total={STEPS.length} labels={STEPS} />
 
-      <div className="relative mt-8 overflow-hidden">
+      {proposalId && <ResumeLink proposalId={proposalId} proposalCode={proposalCode} />}
+
+      <div className="relative mt-6 overflow-hidden">
         <AnimatePresence mode="wait" custom={direction}>
           <motion.div
             key={stepIndex}
@@ -106,27 +195,57 @@ export default function WizardShell() {
                 creating={creating}
                 onStart={async (accessCode) => {
                   await ensureProposal(accessCode);
-                  goNext();
+                  goTo(1, 1);
                 }}
               />
             )}
             {stepIndex === 1 && proposalId && (
-              <StepConcepto proposalId={proposalId} onNext={goNext} onBack={goBack} />
+              <StepConcepto
+                proposalId={proposalId}
+                initial={proposal}
+                onSaved={handleSaved}
+                onNext={goNext}
+                onBack={goBack}
+              />
             )}
             {stepIndex === 2 && proposalId && (
-              <StepSitio proposalId={proposalId} onNext={goNext} onBack={goBack} />
+              <StepSitio
+                proposalId={proposalId}
+                initial={proposal}
+                onSaved={handleSaved}
+                onNext={goNext}
+                onBack={goBack}
+              />
             )}
             {stepIndex === 3 && proposalId && (
-              <StepVolumetria proposalId={proposalId} onNext={goNext} onBack={goBack} />
+              <StepVolumetria
+                proposalId={proposalId}
+                initial={proposal}
+                onSaved={handleSaved}
+                onNext={goNext}
+                onBack={goBack}
+              />
             )}
             {stepIndex === 4 && proposalId && (
-              <StepFachada proposalId={proposalId} onNext={goNext} onBack={goBack} />
+              <StepFachada
+                proposalId={proposalId}
+                initial={proposal}
+                onSaved={handleSaved}
+                onNext={goNext}
+                onBack={goBack}
+              />
             )}
             {stepIndex === 5 && proposalId && (
               <StepImagen proposalId={proposalId} onNext={goNext} onBack={goBack} />
             )}
             {stepIndex === 6 && proposalId && (
-              <StepFases proposalId={proposalId} onNext={goNext} onBack={goBack} />
+              <StepFases
+                proposalId={proposalId}
+                initial={proposal}
+                onSaved={handleSaved}
+                onNext={goNext}
+                onBack={goBack}
+              />
             )}
             {stepIndex === 7 && proposalId && proposalCode && (
               <StepIdentification

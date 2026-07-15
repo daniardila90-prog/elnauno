@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
+import type { Proposal } from "@/lib/supabase/types";
 import { fasesSchema, type FasesValues } from "@/lib/validation/wizard";
 import { Field, PrimaryButton, SecondaryButton, StepHeading, TextArea, TextInput } from "./ui";
 
@@ -16,10 +17,14 @@ const FASES = [
 
 export default function StepFases({
   proposalId,
+  initial,
+  onSaved,
   onNext,
   onBack,
 }: {
   proposalId: string;
+  initial: Proposal | null;
+  onSaved: (values: Partial<Proposal>) => void;
   onNext: () => void;
   onBack: () => void;
 }) {
@@ -30,7 +35,10 @@ export default function StepFases({
     formState: { isSubmitting },
   } = useForm<z.input<typeof fasesSchema>, unknown, FasesValues>({
     resolver: zodResolver(fasesSchema),
-    defaultValues: { fases_json: {}, enfoque_trabajo: "" },
+    defaultValues: {
+      fases_json: initial?.fases_json ?? {},
+      enfoque_trabajo: initial?.enfoque_trabajo ?? "",
+    },
   });
 
   async function onSubmit(values: FasesValues) {
@@ -44,6 +52,7 @@ export default function StepFases({
       setServerError("No se pudo guardar. Intenta de nuevo.");
       return;
     }
+    onSaved(values as Partial<Proposal>);
     onNext();
   }
 

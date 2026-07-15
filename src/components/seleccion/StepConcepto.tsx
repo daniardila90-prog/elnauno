@@ -3,16 +3,21 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import type { Proposal } from "@/lib/supabase/types";
 import { conceptoSchema, type ConceptoValues } from "@/lib/validation/wizard";
 import { Field, PrimaryButton, SecondaryButton, StepHeading, TextArea } from "./ui";
 import FileUploadList from "./FileUploadList";
 
 export default function StepConcepto({
   proposalId,
+  initial,
+  onSaved,
   onNext,
   onBack,
 }: {
   proposalId: string;
+  initial: Proposal | null;
+  onSaved: (values: Partial<Proposal>) => void;
   onNext: () => void;
   onBack: () => void;
 }) {
@@ -21,7 +26,13 @@ export default function StepConcepto({
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<ConceptoValues>({ resolver: zodResolver(conceptoSchema) });
+  } = useForm<ConceptoValues>({
+    resolver: zodResolver(conceptoSchema),
+    defaultValues: {
+      concepto_frase: initial?.concepto_frase ?? "",
+      concepto_desarrollo: initial?.concepto_desarrollo ?? "",
+    },
+  });
 
   async function onSubmit(values: ConceptoValues) {
     setServerError(null);
@@ -34,6 +45,7 @@ export default function StepConcepto({
       setServerError("No se pudo guardar. Intenta de nuevo.");
       return;
     }
+    onSaved(values);
     onNext();
   }
 

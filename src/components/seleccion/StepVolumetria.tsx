@@ -3,16 +3,21 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import type { Proposal } from "@/lib/supabase/types";
 import { volumetriaSchema, type VolumetriaValues } from "@/lib/validation/wizard";
 import { Field, PrimaryButton, SecondaryButton, StepHeading, TextArea } from "./ui";
 import FileUploadList from "./FileUploadList";
 
 export default function StepVolumetria({
   proposalId,
+  initial,
+  onSaved,
   onNext,
   onBack,
 }: {
   proposalId: string;
+  initial: Proposal | null;
+  onSaved: (values: Partial<Proposal>) => void;
   onNext: () => void;
   onBack: () => void;
 }) {
@@ -21,7 +26,13 @@ export default function StepVolumetria({
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<VolumetriaValues>({ resolver: zodResolver(volumetriaSchema) });
+  } = useForm<VolumetriaValues>({
+    resolver: zodResolver(volumetriaSchema),
+    defaultValues: {
+      volumetria_estrategia: initial?.volumetria_estrategia ?? "",
+      volumetria_organizacion: initial?.volumetria_organizacion ?? "",
+    },
+  });
 
   async function onSubmit(values: VolumetriaValues) {
     setServerError(null);
@@ -34,6 +45,7 @@ export default function StepVolumetria({
       setServerError("No se pudo guardar. Intenta de nuevo.");
       return;
     }
+    onSaved(values);
     onNext();
   }
 

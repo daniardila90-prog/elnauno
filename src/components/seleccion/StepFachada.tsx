@@ -3,15 +3,20 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import type { Proposal } from "@/lib/supabase/types";
 import { fachadaSchema, type FachadaValues } from "@/lib/validation/wizard";
 import { Field, PrimaryButton, SecondaryButton, StepHeading, TextArea, TextInput } from "./ui";
 
 export default function StepFachada({
   proposalId,
+  initial,
+  onSaved,
   onNext,
   onBack,
 }: {
   proposalId: string;
+  initial: Proposal | null;
+  onSaved: (values: Partial<Proposal>) => void;
   onNext: () => void;
   onBack: () => void;
 }) {
@@ -20,7 +25,17 @@ export default function StepFachada({
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<FachadaValues>({ resolver: zodResolver(fachadaSchema) });
+  } = useForm<FachadaValues>({
+    resolver: zodResolver(fachadaSchema),
+    defaultValues: {
+      fachada_material_principal: initial?.fachada_material_principal ?? "",
+      fachada_material_secundario: initial?.fachada_material_secundario ?? "",
+      fachada_acabado: initial?.fachada_acabado ?? "",
+      fachada_carpinteria: initial?.fachada_carpinteria ?? "",
+      fachada_estrategia: initial?.fachada_estrategia ?? "",
+      fachada_intencion: initial?.fachada_intencion ?? "",
+    },
+  });
 
   async function onSubmit(values: FachadaValues) {
     setServerError(null);
@@ -33,6 +48,7 @@ export default function StepFachada({
       setServerError("No se pudo guardar. Intenta de nuevo.");
       return;
     }
+    onSaved(values);
     onNext();
   }
 
