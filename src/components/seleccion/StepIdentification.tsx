@@ -31,9 +31,13 @@ export default function StepIdentification({
     });
     if (!res.ok) {
       const body = await res.json();
-      if (body.missing_fields?.length || body.missing_master_plan || body.missing_referente) {
+      if (body.invalid_code) {
         setServerError(
-          "La propuesta está incompleta. Revisa que hayas diligenciado las 3 secciones y subido el Master Plan y al menos un referente."
+          "Código de invitación inválido. Solo las firmas invitadas pueden enviar su propuesta."
+        );
+      } else if (body.missing_fields?.length || body.missing_masterplan || body.missing_proyecto) {
+        setServerError(
+          "La propuesta está incompleta. Revisa que hayas diligenciado todas las secciones y subido el plano de implantación (Masterplan) y al menos una imagen del proyecto."
         );
       } else {
         setServerError(body.error ?? "No se pudo enviar la propuesta.");
@@ -51,6 +55,14 @@ export default function StepIdentification({
       />
 
       <div className="space-y-5">
+        <Field
+          label="Código de invitación"
+          hint="El código que recibió del organizador. Solo las firmas invitadas pueden enviar."
+          error={errors.access_code?.message}
+        >
+          <TextInput {...register("access_code")} placeholder="Código entregado por el organizador" />
+        </Field>
+
         <Field label="Nombre de la firma" error={errors.firm_name?.message}>
           <TextInput {...register("firm_name")} />
         </Field>

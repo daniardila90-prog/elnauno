@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { masterPlanSchema, memoriaSchema, referentesSchema } from "@/lib/validation/wizard";
+import {
+  conceptoSchema,
+  fachadaSchema,
+  fasesSchema,
+  sitioSchema,
+  volumetriaSchema,
+} from "@/lib/validation/wizard";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -44,9 +50,11 @@ export async function PATCH(req: Request, { params }: RouteParams) {
   }
 
   const schemas = {
-    master_plan: masterPlanSchema,
-    referentes: referentesSchema,
-    memoria: memoriaSchema,
+    concepto: conceptoSchema,
+    sitio: sitioSchema,
+    volumetria: volumetriaSchema,
+    fachada: fachadaSchema,
+    fases: fasesSchema,
   } as const;
 
   const schema = schemas[step as keyof typeof schemas];

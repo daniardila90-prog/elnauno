@@ -5,9 +5,15 @@ import { identificationSchema } from "@/lib/validation/wizard";
 type RouteParams = { params: Promise<{ id: string }> };
 
 const REQUIRED_PROPOSAL_FIELDS = [
-  "master_plan_notes",
-  "referentes_narrativa",
-  "memoria_conceptual",
+  "concepto_frase",
+  "concepto_desarrollo",
+  "sitio_oportunidades",
+  "sitio_condicionantes",
+  "volumetria_estrategia",
+  "volumetria_organizacion",
+  "fachada_material_principal",
+  "fachada_estrategia",
+  "fachada_intencion",
 ] as const;
 
 export async function POST(req: Request, { params }: RouteParams) {
@@ -16,6 +22,16 @@ export async function POST(req: Request, { params }: RouteParams) {
   const parsed = identificationSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 422 });
+  }
+
+  // Solo las firmas invitadas pueden enviar: se valida el código de invitación
+  // contra la variable de entorno del servidor (nunca expuesta al cliente).
+  const expectedCode = (process.env.SELECCION_ACCESS_CODE ?? "").trim();
+  if (!expectedCode || parsed.data.access_code.trim() !== expectedCode) {
+    return NextResponse.json(
+      { error: "Código de invitación inválido.", invalid_code: true },
+      { status: 403 }
+    );
   }
 
   const supabase = createAdminClient();
@@ -40,16 +56,16 @@ export async function POST(req: Request, { params }: RouteParams) {
     .from("proposal_files")
     .select("kind")
     .eq("proposal_id", id);
-  const hasMasterPlan = (files ?? []).some((f) => f.kind === "master_plan");
-  const hasReferente = (files ?? []).some((f) => f.kind === "referente");
+  const hasMasterplan = (files ?? []).some((f) => f.kind === "masterplan");
+  const hasProyecto = (files ?? []).some((f) => f.kind === "proyecto");
 
-  if (missing.length > 0 || !hasMasterPlan || !hasReferente) {
+  if (missing.length > 0 || !hasMasterplan || !hasProyecto) {
     return NextResponse.json(
       {
         error: "La propuesta está incompleta.",
         missing_fields: missing,
-        missing_master_plan: !hasMasterPlan,
-        missing_referente: !hasReferente,
+        missing_masterplan: !hasMasterplan,
+        missing_proyecto: !hasProyecto,
       },
       { status: 422 }
     );

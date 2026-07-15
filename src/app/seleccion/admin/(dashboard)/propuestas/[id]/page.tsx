@@ -36,8 +36,18 @@ export default async function ProposalDetailPage({
     })
   );
 
-  const masterPlanFiles = filesWithUrls.filter((f) => f.kind === "master_plan");
-  const referenteFiles = filesWithUrls.filter((f) => f.kind === "referente");
+  const conceptoFiles = filesWithUrls.filter((f) => f.kind === "concepto");
+  const masterplanFiles = filesWithUrls.filter((f) => f.kind === "masterplan");
+  const volumetriaFiles = filesWithUrls.filter((f) => f.kind === "volumetria");
+  const proyectoFiles = filesWithUrls.filter((f) => f.kind === "proyecto");
+
+  const fases = (proposal.fases_json ?? {}) as Record<string, number | undefined>;
+  const fasesLabels: [string, string][] = [
+    ["Anteproyecto", "anteproyecto_semanas"],
+    ["Proyecto arquitectónico", "proyecto_semanas"],
+    ["Coordinación técnica", "coordinacion_semanas"],
+    ["Documentos de construcción", "documentos_semanas"],
+  ];
 
   return (
     <div className="space-y-8">
@@ -51,21 +61,46 @@ export default async function ProposalDetailPage({
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          <Section title="Master Plan">
-            <FileList files={masterPlanFiles} empty="Sin archivos de Master Plan." />
-            <Field label="Notas" value={proposal.master_plan_notes} />
+          <Section title="Concepto de diseño">
+            <Field label="Concepto (una frase)" value={proposal.concepto_frase} />
+            <Field label="Desarrollo del concepto" value={proposal.concepto_desarrollo} />
+            <FileList files={conceptoFiles} empty="Sin imagen conceptual / moodboard." />
           </Section>
 
-          <Section title="Referentes">
-            <FileList files={referenteFiles} empty="Sin imágenes de referentes." />
-            <Field
-              label="¿Cómo se siente/vibra la arquitectura?"
-              value={proposal.referentes_narrativa}
-            />
+          <Section title="Análisis de sitio y emplazamiento">
+            <FileList files={masterplanFiles} empty="Sin plano de implantación (Masterplan)." />
+            <Field label="Oportunidades del sitio" value={proposal.sitio_oportunidades} />
+            <Field label="Condicionantes y normativa" value={proposal.sitio_condicionantes} />
           </Section>
 
-          <Section title="Memoria conceptual">
-            <Field label="" value={proposal.memoria_conceptual} />
+          <Section title="Materialidad y volumetría">
+            <Field label="Estrategia volumétrica" value={proposal.volumetria_estrategia} />
+            <Field label="Organización general" value={proposal.volumetria_organizacion} />
+            <FileList files={volumetriaFiles} empty="Sin imagen de referencia." />
+          </Section>
+
+          <Section title="Materialidad de fachada">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Material principal" value={proposal.fachada_material_principal} />
+              <Field label="Material secundario" value={proposal.fachada_material_secundario} />
+              <Field label="Acabado / textura" value={proposal.fachada_acabado} />
+              <Field label="Carpintería / vidrio" value={proposal.fachada_carpinteria} />
+            </div>
+            <Field label="Estrategia de materiales" value={proposal.fachada_estrategia} />
+            <Field label="Intención de la fachada" value={proposal.fachada_intencion} />
+          </Section>
+
+          <Section title="Imagen del proyecto">
+            <FileList files={proyectoFiles} empty="Sin perspectiva exterior." />
+          </Section>
+
+          <Section title="Fases de diseño">
+            <div className="grid grid-cols-2 gap-3">
+              {fasesLabels.map(([label, key]) => (
+                <Field key={key} label={label} value={fases[key] != null ? `${fases[key]} semanas` : null} />
+              ))}
+            </div>
+            <Field label="Enfoque de trabajo" value={proposal.enfoque_trabajo} />
           </Section>
 
           <Section title="Identidad">

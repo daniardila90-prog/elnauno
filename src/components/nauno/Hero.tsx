@@ -7,8 +7,8 @@ export default function Hero() {
   return (
     <section id="inicio" className="relative flex h-screen min-h-[640px] items-center justify-center overflow-hidden">
       <Image
-        src="/images/terreno-aereo-5.jpg"
-        alt="El Nauno Reserva — vista aérea real del lote"
+        src="/images/hero-embalse.jpg"
+        alt="El Nauno Reserva — vista del embalse de Topocoro"
         fill
         priority
         className="object-cover"

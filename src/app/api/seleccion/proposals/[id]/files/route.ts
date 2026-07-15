@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
-const ALLOWED_KINDS = ["master_plan", "referente"];
+const ALLOWED_KINDS = ["concepto", "masterplan", "volumetria", "proyecto"];
 const MAX_SIZE_BYTES = 50 * 1024 * 1024; // 50MB
 
 export async function POST(req: Request, { params }: RouteParams) {

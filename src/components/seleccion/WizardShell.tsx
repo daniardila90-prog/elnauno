@@ -4,12 +4,24 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import StepCode from "./StepCode";
-import StepMasterPlan from "./StepMasterPlan";
-import StepReferentes from "./StepReferentes";
-import StepMemoria from "./StepMemoria";
+import StepConcepto from "./StepConcepto";
+import StepSitio from "./StepSitio";
+import StepVolumetria from "./StepVolumetria";
+import StepFachada from "./StepFachada";
+import StepImagen from "./StepImagen";
+import StepFases from "./StepFases";
 import StepIdentification from "./StepIdentification";
 
-const STEPS = ["Código", "Master Plan", "Referentes", "Memoria conceptual", "Identificación"];
+const STEPS = [
+  "Inicio",
+  "Concepto",
+  "Análisis de sitio",
+  "Materialidad y volumetría",
+  "Fachada",
+  "Imagen del proyecto",
+  "Fases de diseño",
+  "Identificación",
+];
 
 const STORAGE_KEY = "nauno-seleccion-draft";
 
@@ -89,15 +101,24 @@ export default function WizardShell() {
               />
             )}
             {stepIndex === 1 && proposalId && (
-              <StepMasterPlan proposalId={proposalId} onNext={goNext} onBack={goBack} />
+              <StepConcepto proposalId={proposalId} onNext={goNext} onBack={goBack} />
             )}
             {stepIndex === 2 && proposalId && (
-              <StepReferentes proposalId={proposalId} onNext={goNext} onBack={goBack} />
+              <StepSitio proposalId={proposalId} onNext={goNext} onBack={goBack} />
             )}
             {stepIndex === 3 && proposalId && (
-              <StepMemoria proposalId={proposalId} onNext={goNext} onBack={goBack} />
+              <StepVolumetria proposalId={proposalId} onNext={goNext} onBack={goBack} />
             )}
-            {stepIndex === 4 && proposalId && proposalCode && (
+            {stepIndex === 4 && proposalId && (
+              <StepFachada proposalId={proposalId} onNext={goNext} onBack={goBack} />
+            )}
+            {stepIndex === 5 && proposalId && (
+              <StepImagen proposalId={proposalId} onNext={goNext} onBack={goBack} />
+            )}
+            {stepIndex === 6 && proposalId && (
+              <StepFases proposalId={proposalId} onNext={goNext} onBack={goBack} />
+            )}
+            {stepIndex === 7 && proposalId && proposalCode && (
               <StepIdentification
                 proposalId={proposalId}
                 onBack={goBack}

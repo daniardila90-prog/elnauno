@@ -1,14 +1,43 @@
 export type ProposalStatus = "draft" | "submitted";
 
-export type FileKind = "master_plan" | "referente";
+export type FileKind = "concepto" | "masterplan" | "volumetria" | "proyecto";
+
+export interface FasesJson {
+  anteproyecto_semanas?: number;
+  proyecto_semanas?: number;
+  coordinacion_semanas?: number;
+  documentos_semanas?: number;
+}
 
 export interface Proposal {
   id: string;
   proposal_code: string;
   status: ProposalStatus;
-  master_plan_notes: string | null;
-  referentes_narrativa: string | null;
-  memoria_conceptual: string | null;
+
+  // Concepto de diseño
+  concepto_frase: string | null;
+  concepto_desarrollo: string | null;
+
+  // Análisis de sitio y emplazamiento
+  sitio_oportunidades: string | null;
+  sitio_condicionantes: string | null;
+
+  // Materialidad y volumetría
+  volumetria_estrategia: string | null;
+  volumetria_organizacion: string | null;
+
+  // Fachada
+  fachada_material_principal: string | null;
+  fachada_material_secundario: string | null;
+  fachada_acabado: string | null;
+  fachada_carpinteria: string | null;
+  fachada_estrategia: string | null;
+  fachada_intencion: string | null;
+
+  // Fases de diseño
+  fases_json: FasesJson;
+  enfoque_trabajo: string | null;
+
   created_at: string;
   updated_at: string;
   submitted_at: string | null;
@@ -48,12 +77,15 @@ export interface Evaluation {
   updated_at: string;
 }
 
+// Nota: las columnas de DB de la rúbrica conservan sus nombres originales
+// (score_master_plan / score_referentes / score_memoria); solo cambian las
+// etiquetas visibles para alinearlas con las secciones de la plantilla 2026.
 export const EVALUATION_CRITERIA: {
   key: keyof Pick<Evaluation, "score_master_plan" | "score_referentes" | "score_memoria">;
   label: string;
   hint: string;
 }[] = [
-  { key: "score_master_plan", label: "Master Plan", hint: "Implantación y respuesta al lote" },
-  { key: "score_referentes", label: "Referentes", hint: "Concepto e intención espacial" },
-  { key: "score_memoria", label: "Memoria conceptual", hint: "Claridad del razonamiento" },
+  { key: "score_master_plan", label: "Concepto y emplazamiento", hint: "Idea rectora e implantación en el lote" },
+  { key: "score_referentes", label: "Materialidad y volumetría", hint: "Estrategia volumétrica y de materiales" },
+  { key: "score_memoria", label: "Fachada y viabilidad", hint: "Lenguaje de fachada y fases de diseño" },
 ];

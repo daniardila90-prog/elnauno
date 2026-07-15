@@ -8,11 +8,13 @@ export default function FileUploadList({
   kind,
   multiple = false,
   onError,
+  onCountChange,
 }: {
   proposalId: string;
   kind: FileKind;
   multiple?: boolean;
   onError?: (message: string | null) => void;
+  onCountChange?: (count: number) => void;
 }) {
   const [files, setFiles] = useState<ProposalFile[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -20,7 +22,13 @@ export default function FileUploadList({
   useEffect(() => {
     fetch(`/api/seleccion/proposals/${proposalId}/files`)
       .then((r) => r.json())
-      .then((all: ProposalFile[]) => setFiles(all.filter((f) => f.kind === kind)));
+      .then((all: ProposalFile[]) => {
+        const own = all.filter((f) => f.kind === kind);
+        setFiles(own);
+        onCountChange?.(own.length);
+      });
+    // onCountChange intentionally excluded to avoid refetch loops
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [proposalId, kind]);
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -42,7 +50,11 @@ export default function FileUploadList({
           throw new Error(body.error ?? "Error al subir el archivo.");
         }
         const fileRow = await res.json();
-        setFiles((prev) => [...prev, fileRow]);
+        setFiles((prev) => {
+          const next = [...prev, fileRow];
+          onCountChange?.(next.length);
+          return next;
+        });
       }
     } catch (err) {
       onError?.(err instanceof Error ? err.message : "Error al subir el archivo.");
@@ -56,7 +68,11 @@ export default function FileUploadList({
     await fetch(`/api/seleccion/proposals/${proposalId}/files?fileId=${fileId}`, {
       method: "DELETE",
     });
-    setFiles((prev) => prev.filter((f) => f.id !== fileId));
+    setFiles((prev) => {
+      const next = prev.filter((f) => f.id !== fileId);
+      onCountChange?.(next.length);
+      return next;
+    });
   }
 
   return (

@@ -45,12 +45,23 @@ const SAMPLE_PROPOSALS = [
   {
     proposal_code: "NAUNO-DEMO01",
     status: "submitted",
-    master_plan_notes:
-      "El proyecto se implanta en la ladera norte del lote, retirado de la línea de aguas máximas del embalse, con acceso principal desde la vía existente y un recorrido escalonado que sigue la topografía natural.",
-    referentes_narrativa:
-      "Buscamos una arquitectura que se sienta como una extensión del bosque: materiales cálidos, luz filtrada por la vegetación, y espacios que se abren progresivamente hacia el agua. El huésped debe sentir que entra a un refugio, no a un edificio.",
-    memoria_conceptual:
-      "La lectura del lote parte de sus tres condiciones dominantes: la pendiente hacia el embalse, la vegetación densa en el borde de agua y las visuales panorámicas hacia las montañas. El master plan organiza el programa en tres bandas paralelas a las curvas de nivel — llegada y servicios en la cota alta, habitaciones escalonadas en la cota media, y amenidades y muelle en la cota baja junto al agua — minimizando el movimiento de tierra y preservando los árboles existentes en el borde de la ribera.",
+    concepto_frase: "Un volumen que traduce el paisaje local en una fachada viva.",
+    concepto_desarrollo:
+      "El anteproyecto se piensa como una extensión del bosque: materiales cálidos, luz filtrada por la vegetación y espacios que se abren progresivamente hacia el agua.",
+    sitio_oportunidades: "Visuales hacia el embalse, orientación norte-sur, acceso desde la vía existente.",
+    sitio_condicionantes: "Retiro ambiental de la línea de aguas máximas, pendiente pronunciada, POT municipal.",
+    volumetria_estrategia:
+      "Volumen escalonado que sigue las curvas de nivel; llegada en la cota alta y amenidades hacia el agua.",
+    volumetria_organizacion: "Núcleo central de circulación que separa zonas públicas y privadas.",
+    fachada_material_principal: "Concreto a la vista",
+    fachada_material_secundario: "Madera local",
+    fachada_acabado: "Microtexturado mate",
+    fachada_carpinteria: "Aluminio negro, vidrio control solar",
+    fachada_estrategia:
+      "Materiales de bajo mantenimiento que envejecen bien en clima cálido-húmedo y dialogan con la vegetación.",
+    fachada_intencion: "Una fachada que se difumina entre los árboles.",
+    fases_json: { anteproyecto_semanas: 6, proyecto_semanas: 10, coordinacion_semanas: 6, documentos_semanas: 8 },
+    enfoque_trabajo: "Equipo integrado con coordinación BIM desde el anteproyecto.",
     identification: {
       firm_name: "Taller Cerro y Piedra",
       contact_name: "Laura Gómez",
@@ -61,12 +72,21 @@ const SAMPLE_PROPOSALS = [
   {
     proposal_code: "NAUNO-DEMO02",
     status: "submitted",
-    master_plan_notes:
-      "Implantación en forma de peine perpendicular a la orilla, con un eje central peatonal que conecta el acceso con el muelle, y volúmenes de habitaciones organizados en abanico para maximizar las visuales al embalse.",
-    referentes_narrativa:
-      "La arquitectura debe desaparecer ante el paisaje: cubiertas verdes, fachadas en madera y piedra local, y grandes aberturas que disuelven el límite entre interior y exterior. Cada habitación es un mirador privado sobre el agua.",
-    memoria_conceptual:
-      "Partimos de proteger las tres quebradas menores que cruzan el lote y de mantener libre la primera línea de árboles frente al embalse. El programa se organiza en un eje longitudinal que reduce la huella de circulaciones vehiculares al mínimo indispensable, dejando el resto del lote como zona de conservación activa y senderos peatonales.",
+    concepto_frase: "La arquitectura desaparece ante el paisaje.",
+    concepto_desarrollo:
+      "Cubiertas verdes y grandes aberturas que disuelven el límite entre interior y exterior; cada espacio es un mirador sobre el agua.",
+    sitio_oportunidades: "Frente de agua amplio, topografía aprovechable para terrazas.",
+    sitio_condicionantes: "Tres quebradas menores a proteger, primera línea de árboles a conservar.",
+    volumetria_estrategia: "Peine perpendicular a la orilla con eje peatonal central hacia el muelle.",
+    volumetria_organizacion: "Circulación vehicular reducida al mínimo; el resto del lote como conservación activa.",
+    fachada_material_principal: "Piedra local",
+    fachada_material_secundario: "Madera",
+    fachada_acabado: "Aparejo rústico",
+    fachada_carpinteria: "Perfilería mínima, vidrio de piso a techo",
+    fachada_estrategia: "Materiales del lugar que reducen huella de transporte y se integran al entorno.",
+    fachada_intencion: "Una fachada que enmarca el agua desde cada habitación.",
+    fases_json: { anteproyecto_semanas: 8, proyecto_semanas: 12, coordinacion_semanas: 8, documentos_semanas: 10 },
+    enfoque_trabajo: "Metodología por fases con entregables validados en cada etapa.",
     identification: {
       firm_name: "Estudio Ladera",
       contact_name: "Carlos Restrepo",
@@ -77,9 +97,16 @@ const SAMPLE_PROPOSALS = [
   {
     proposal_code: "NAUNO-DEMO03",
     status: "draft",
-    master_plan_notes: "Propuesta en desarrollo — borrador de trabajo.",
-    referentes_narrativa: "En desarrollo.",
-    memoria_conceptual: "En desarrollo.",
+    concepto_frase: "Propuesta en desarrollo.",
+    concepto_desarrollo: "Borrador de trabajo.",
+    sitio_oportunidades: "En desarrollo.",
+    sitio_condicionantes: "En desarrollo.",
+    volumetria_estrategia: "En desarrollo.",
+    volumetria_organizacion: "En desarrollo.",
+    fachada_material_principal: "Por definir.",
+    fachada_estrategia: "En desarrollo.",
+    fachada_intencion: "En desarrollo.",
+    fases_json: {},
     identification: null,
   },
 ];
