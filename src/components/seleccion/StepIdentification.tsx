@@ -20,7 +20,10 @@ export default function StepIdentification({
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<IdentificationValues>({ resolver: zodResolver(identificationSchema) });
+  } = useForm<IdentificationValues>({
+    resolver: zodResolver(identificationSchema),
+    defaultValues: { data_consent: false },
+  });
 
   async function onSubmit(values: IdentificationValues) {
     setServerError(null);
@@ -64,6 +67,31 @@ export default function StepIdentification({
           <Field label="Teléfono" error={errors.phone?.message}>
             <TextInput {...register("phone")} />
           </Field>
+        </div>
+
+        <div>
+          <label className="flex items-start gap-3 text-sm text-forest/80">
+            <input
+              type="checkbox"
+              {...register("data_consent")}
+              className="mt-0.5 h-4 w-4 flex-none accent-forest"
+            />
+            <span>
+              Autorizo el tratamiento de mis datos personales conforme al{" "}
+              <a
+                href="/seleccion/privacidad"
+                target="_blank"
+                rel="noreferrer"
+                className="underline decoration-taupe/60 underline-offset-2 hover:text-forest"
+              >
+                aviso de privacidad
+              </a>
+              , para gestionar mi participación en la selección arquitectónica de El Nauno.
+            </span>
+          </label>
+          {errors.data_consent && (
+            <p className="mt-1 text-sm text-red-600">{errors.data_consent.message}</p>
+          )}
         </div>
       </div>
 

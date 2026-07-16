@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { identificationSchema } from "@/lib/validation/wizard";
+import { CONSENT_VERSION, identificationSchema } from "@/lib/validation/wizard";
 import { getClientIp, withinRateLimit } from "@/lib/rate-limit";
 
 type RouteParams = { params: Promise<{ id: string }> };
@@ -97,13 +97,28 @@ export async function POST(req: Request, { params }: RouteParams) {
     );
   }
 
-  const { error: identificationError } = await supabase.from("identification_forms").insert({
+  const identity = {
     proposal_id: id,
     firm_name: parsed.data.firm_name,
     contact_name: parsed.data.contact_name,
     email: parsed.data.email,
     phone: parsed.data.phone,
-  });
+  };
+  // Prueba de la autorización de tratamiento (Ley 1581): cuándo y qué versión.
+  const consent = {
+    data_consent_at: new Date().toISOString(),
+    data_consent_version: CONSENT_VERSION,
+  };
+
+  let identificationError = (
+    await supabase.from("identification_forms").insert({ ...identity, ...consent })
+  ).error;
+  // Si la migración 0007 aún no se aplicó (columna inexistente, código 42703),
+  // no se bloquea el envío: se guarda la identidad sin las columnas de prueba.
+  // El consentimiento sí quedó exigido en el formulario y validado en el servidor.
+  if (identificationError?.code === "42703") {
+    identificationError = (await supabase.from("identification_forms").insert(identity)).error;
+  }
   if (identificationError) {
     return NextResponse.json({ error: identificationError.message }, { status: 500 });
   }

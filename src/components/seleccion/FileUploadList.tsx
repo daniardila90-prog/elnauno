@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { ProposalFile } from "@/lib/supabase/types";
 import { createClient } from "@/lib/supabase/client";
+import { stripImageMetadata } from "@/lib/strip-metadata";
 import {
   BUCKET,
   KIND_RULES,
@@ -54,12 +55,17 @@ export default function FileUploadList({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [proposalId, kind]);
 
-  async function uploadOne(file: File) {
+  async function uploadOne(original: File) {
     // Validación en el navegador para dar feedback inmediato.
-    const ext = extensionOf(file.name);
+    const ext = extensionOf(original.name);
     if (!rule.extensions.includes(ext as never)) {
       throw new Error(`Formato no permitido (.${ext}). En esta sección se acepta ${formatsLabel(kind)}.`);
     }
+
+    // Anonimato: se quitan los metadatos de las imágenes (EXIF/autor/GPS) antes de
+    // subirlas, sin recomprimir. Si falla, devuelve el original intacto.
+    const file = await stripImageMetadata(original);
+
     if (file.size > MAX_SIZE_BYTES) {
       throw new Error(
         `"${file.name}" pesa ${(file.size / 1024 / 1024).toFixed(1)} MB y el límite es 50 MB.`
@@ -169,6 +175,11 @@ export default function FileUploadList({
       </label>
 
       {progress && <p className="mt-2 text-xs text-forest/60">{progress}</p>}
+
+      <p className="mt-2 text-xs text-forest/40">
+        Para mantener el anonimato, al subir se eliminan los metadatos de las imágenes. En PDF,
+        expórtelo sin datos de autor ni logotipos.
+      </p>
 
       <ul className="mt-4 divide-y divide-taupe/20 rounded-lg border border-taupe/20">
         {files.length === 0 && (

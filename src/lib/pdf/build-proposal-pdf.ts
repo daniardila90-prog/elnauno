@@ -197,9 +197,14 @@ export async function buildProposalPdf({
   const regular = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
 
+  // Metadatos neutros: el dossier no debe delatar a la firma. Solo se usa el
+  // código anónimo de la propuesta; se limpian autor/asunto/palabras clave.
   doc.setTitle(`${proposal.proposal_code} — Selección arquitectónica El Nauno`);
   doc.setProducer("El Nauno");
   doc.setCreator("El Nauno");
+  doc.setAuthor("");
+  doc.setSubject("");
+  doc.setKeywords([]);
 
   const w = new Writer(doc, regular, bold);
 

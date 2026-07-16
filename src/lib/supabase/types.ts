@@ -62,6 +62,9 @@ export interface IdentificationForm {
   submitted_at: string;
   revealed_at: string | null;
   revealed_by: string | null;
+  /** Prueba de la autorización de tratamiento de datos (Ley 1581). */
+  data_consent_at: string | null;
+  data_consent_version: string | null;
 }
 
 export interface Evaluation {

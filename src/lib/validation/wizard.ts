@@ -44,10 +44,20 @@ export const fasesSchema = z.object({
 });
 export type FasesValues = z.infer<typeof fasesSchema>;
 
+/**
+ * Versión del aviso de privacidad vigente. Se guarda junto al consentimiento
+ * para poder demostrar qué texto aceptó la firma. Actualízala si cambia el aviso.
+ */
+export const CONSENT_VERSION = "2026-07-16";
+
 export const identificationSchema = z.object({
   firm_name: z.string().min(1, "Nombre de la firma requerido."),
   contact_name: z.string().min(1, "Nombre de contacto requerido."),
   email: z.string().email("Correo inválido."),
   phone: z.string().min(1, "Teléfono requerido."),
+  // Autorización de tratamiento de datos: obligatoria para poder enviar.
+  data_consent: z
+    .boolean()
+    .refine((v) => v === true, "Debe autorizar el tratamiento de datos para enviar la propuesta."),
 });
 export type IdentificationValues = z.infer<typeof identificationSchema>;
