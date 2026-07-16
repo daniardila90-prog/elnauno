@@ -4,6 +4,11 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { withinRateLimit } from "@/lib/rate-limit";
 import {
+  EVALUATION_CRITERIA,
+  EVALUATION_SCALE_MAX,
+  isExtremeScore,
+} from "@/lib/supabase/types";
+import {
   passphraseIsConfigured,
   passphraseMatches,
   revealAvailableFromLabel,
@@ -29,15 +34,27 @@ export async function saveEvaluation(
     return { ok: false, error: "Escriba su nombre para guardar la evaluación." };
   }
 
-  const scores = {
-    score_master_plan: Number(formData.get("score_master_plan")),
-    score_referentes: Number(formData.get("score_referentes")),
-    score_memoria: Number(formData.get("score_memoria")),
-  };
-  for (const value of Object.values(scores)) {
-    if (!Number.isInteger(value) || value < 0 || value > 10) {
-      return { ok: false, error: "Puntajes inválidos." };
+  const scores = {} as Record<(typeof EVALUATION_CRITERIA)[number]["key"], number>;
+  for (const c of EVALUATION_CRITERIA) {
+    const value = Number(formData.get(c.key));
+    if (!Number.isInteger(value) || value < 0 || value > EVALUATION_SCALE_MAX) {
+      return { ok: false, error: `Puntaje inválido en "${c.label}".` };
     }
+    scores[c.key] = value;
+  }
+
+  const comments = String(formData.get("comments") ?? "").trim();
+
+  // Toda nota extrema (muy baja o muy alta) debe quedar justificada: es la
+  // regla que sostiene la objetividad, así que se valida también en el servidor
+  // y no solo en el formulario.
+  const extremos = EVALUATION_CRITERIA.filter((c) => isExtremeScore(scores[c.key]));
+  if (extremos.length > 0 && comments === "") {
+    const nombres = extremos.map((c) => c.label).join(", ");
+    return {
+      ok: false,
+      error: `Justifique en los comentarios las notas extremas de: ${nombres}.`,
+    };
   }
 
   const { error } = await supabase.from("evaluations").upsert(
@@ -46,7 +63,7 @@ export async function saveEvaluation(
       evaluator_id: user.id,
       evaluator_name: evaluatorName,
       ...scores,
-      comments: String(formData.get("comments") ?? ""),
+      comments,
     },
     { onConflict: "proposal_id,evaluator_key" }
   );
