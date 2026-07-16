@@ -10,32 +10,50 @@ import {
   revealIsOpen,
 } from "@/lib/identity-reveal";
 
-export async function saveEvaluation(proposalId: string, formData: FormData) {
+export type SaveEvaluationResult = { ok: true } | { ok: false; error: string };
+
+export async function saveEvaluation(
+  proposalId: string,
+  formData: FormData
+): Promise<SaveEvaluationResult> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("No autenticado.");
+  if (!user) return { ok: false, error: "No autenticado." };
+
+  // Los socios comparten cuenta, así que el nombre es lo único que distingue
+  // una evaluación de otra: sin él se sobrescribirían entre sí.
+  const evaluatorName = String(formData.get("evaluator_name") ?? "").trim();
+  if (!evaluatorName) {
+    return { ok: false, error: "Escriba su nombre para guardar la evaluación." };
+  }
 
   const scores = {
     score_master_plan: Number(formData.get("score_master_plan")),
     score_referentes: Number(formData.get("score_referentes")),
     score_memoria: Number(formData.get("score_memoria")),
   };
-  const comments = String(formData.get("comments") ?? "");
+  for (const value of Object.values(scores)) {
+    if (!Number.isInteger(value) || value < 0 || value > 10) {
+      return { ok: false, error: "Puntajes inválidos." };
+    }
+  }
 
   const { error } = await supabase.from("evaluations").upsert(
     {
       proposal_id: proposalId,
       evaluator_id: user.id,
+      evaluator_name: evaluatorName,
       ...scores,
-      comments,
+      comments: String(formData.get("comments") ?? ""),
     },
-    { onConflict: "proposal_id,evaluator_id" }
+    { onConflict: "proposal_id,evaluator_key" }
   );
-  if (error) throw new Error(error.message);
+  if (error) return { ok: false, error: error.message };
 
   revalidatePath(`/seleccion/admin/propuestas/${proposalId}`);
+  return { ok: true };
 }
 
 export type RevealResult = { ok: true } | { ok: false; error: string };

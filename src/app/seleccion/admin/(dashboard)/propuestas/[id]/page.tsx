@@ -17,17 +17,15 @@ export default async function ProposalDetailPage({
   const { data: proposal } = await supabase.from("proposals").select("*").eq("id", id).single();
   if (!proposal) notFound();
 
-  const [{ data: files }, { data: identification }, { data: evaluations }, { data: userData }] =
-    await Promise.all([
-      supabase.from("proposal_files").select("*").eq("proposal_id", id),
-      supabase.from("identification_forms").select("*").eq("proposal_id", id).maybeSingle(),
-      supabase.from("evaluations").select("*").eq("proposal_id", id),
-      supabase.auth.getUser(),
-    ]);
+  const [{ data: files }, { data: identification }, { data: evaluations }] = await Promise.all([
+    supabase.from("proposal_files").select("*").eq("proposal_id", id),
+    supabase.from("identification_forms").select("*").eq("proposal_id", id).maybeSingle(),
+    supabase.from("evaluations").select("*").eq("proposal_id", id).order("evaluator_name"),
+  ]);
 
-  const currentUserId = userData.user?.id;
-  const myEvaluation =
-    (evaluations as Evaluation[] | null)?.find((e) => e.evaluator_id === currentUserId) ?? null;
+  // Los socios comparten cuenta: cuál evaluación es "la mía" lo decide el
+  // nombre que escriba el socio, ya en el navegador.
+  const allEvaluations = (evaluations as Evaluation[] | null) ?? [];
 
   const filesWithUrls = await Promise.all(
     ((files as ProposalFile[] | null) ?? []).map(async (f) => {
@@ -202,11 +200,12 @@ export default async function ProposalDetailPage({
           <div className="sticky top-6 rounded-xl border border-taupe/20 bg-white p-5">
             <h2 className="text-sm font-semibold text-forest">Rúbrica de evaluación</h2>
             <p className="mt-1 text-xs text-forest/50">
-              {(evaluations?.length ?? 0) - (myEvaluation ? 1 : 0)} evaluación(es) registrada(s) de
-              otros socios.
+              {allEvaluations.length === 0
+                ? "Ningún socio ha calificado esta propuesta."
+                : `${allEvaluations.length} evaluación(es) registrada(s).`}
             </p>
             <div className="mt-5">
-              <EvaluationForm proposalId={id} myEvaluation={myEvaluation} />
+              <EvaluationForm proposalId={id} evaluations={allEvaluations} />
             </div>
           </div>
         </div>

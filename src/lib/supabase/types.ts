@@ -68,6 +68,10 @@ export interface Evaluation {
   id: string;
   proposal_id: string;
   evaluator_id: string;
+  /** Nombre del socio que calificó: los socios comparten una sola cuenta. */
+  evaluator_name: string;
+  /** Versión normalizada de evaluator_name; la genera la base. */
+  evaluator_key: string;
   score_master_plan: number;
   score_referentes: number;
   score_memoria: number;
