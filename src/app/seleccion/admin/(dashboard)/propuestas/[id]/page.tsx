@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import type { Evaluation, ProposalFile } from "@/lib/supabase/types";
 import EvaluationForm from "@/components/seleccion-admin/EvaluationForm";
 import RevealIdentityButton from "@/components/seleccion-admin/RevealIdentityButton";
+import DownloadProposalPdfButton from "@/components/seleccion-admin/DownloadProposalPdfButton";
+import { revealAvailableFromLabel, revealIsOpen } from "@/lib/identity-reveal";
 
 export default async function ProposalDetailPage({
   params,
@@ -136,7 +138,11 @@ export default async function ProposalDetailPage({
                     Identidad oculta mientras dure la evaluación anónima.
                   </p>
                   <div className="mt-3">
-                    <RevealIdentityButton proposalId={id} />
+                    <RevealIdentityButton
+                      proposalId={id}
+                      isOpen={revealIsOpen()}
+                      availableFromLabel={revealAvailableFromLabel()}
+                    />
                   </div>
                 </div>
               )
@@ -147,6 +153,35 @@ export default async function ProposalDetailPage({
         </div>
 
         <div className="space-y-6">
+          <div className="rounded-xl border border-taupe/20 bg-white p-5">
+            <h2 className="text-sm font-semibold text-forest">Dossier completo</h2>
+            <p className="mt-1 text-xs text-forest/50">
+              Un PDF con todas las respuestas y los archivos incrustados, para leer o imprimir la
+              propuesta sin abrir cada adjunto.
+            </p>
+            <div className="mt-4">
+              <DownloadProposalPdfButton
+                proposal={proposal}
+                files={filesWithUrls.map((f) => ({
+                  kind: f.kind,
+                  file_name: f.file_name,
+                  url: f.url,
+                }))}
+                // La identidad solo viaja al PDF si ya fue revelada.
+                identity={
+                  identification?.revealed_at
+                    ? {
+                        firm_name: identification.firm_name,
+                        contact_name: identification.contact_name,
+                        email: identification.email,
+                        phone: identification.phone,
+                      }
+                    : null
+                }
+              />
+            </div>
+          </div>
+
           <div className="rounded-xl border border-taupe/20 bg-white p-5">
             <h2 className="text-sm font-semibold text-forest">Análisis preliminar (IA)</h2>
             <p className="mt-1 text-xs text-forest/50">

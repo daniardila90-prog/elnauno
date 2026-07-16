@@ -57,7 +57,6 @@ const SAMPLE_PROPOSALS = [
     concepto_desarrollo:
       "El anteproyecto se piensa como una extensión del bosque: materiales cálidos, luz filtrada por la vegetación y espacios que se abren progresivamente hacia el agua.",
     sitio_oportunidades: "Visuales hacia el embalse, orientación norte-sur, acceso desde la vía existente.",
-    sitio_condicionantes: "Retiro ambiental de la línea de aguas máximas, pendiente pronunciada, POT municipal.",
     volumetria_estrategia:
       "Volumen escalonado que sigue las curvas de nivel; llegada en la cota alta y amenidades hacia el agua.",
     volumetria_organizacion: "Núcleo central de circulación que separa zonas públicas y privadas.",
@@ -76,6 +75,16 @@ const SAMPLE_PROPOSALS = [
       email: "laura@tallercerroypiedra.co",
       phone: "3001234567",
     },
+    // Adjuntos de prueba tomados de las imágenes reales del sitio, para poder
+    // verificar el dossier en PDF con archivos de verdad.
+    files: [
+      { kind: "concepto", source: "public/images/entorno-panoramica.jpg" },
+      { kind: "masterplan", source: "generated:masterplan.pdf" },
+      { kind: "volumetria", source: "public/images/terreno-aereo-1.jpg" },
+      { kind: "organizacion", source: "public/images/terreno-aereo-2.jpg" },
+      { kind: "proyecto", source: "public/images/hero-embalse.jpg" },
+      { kind: "proyecto", source: "public/images/logo-negro-icon.png" },
+    ],
   },
   {
     proposal_code: "NAUNO-DEMO02",
@@ -84,7 +93,6 @@ const SAMPLE_PROPOSALS = [
     concepto_desarrollo:
       "Cubiertas verdes y grandes aberturas que disuelven el límite entre interior y exterior; cada espacio es un mirador sobre el agua.",
     sitio_oportunidades: "Frente de agua amplio, topografía aprovechable para terrazas.",
-    sitio_condicionantes: "Tres quebradas menores a proteger, primera línea de árboles a conservar.",
     volumetria_estrategia: "Peine perpendicular a la orilla con eje peatonal central hacia el muelle.",
     volumetria_organizacion: "Circulación vehicular reducida al mínimo; el resto del lote como conservación activa.",
     fachada_material_principal: "Piedra local",
@@ -108,7 +116,6 @@ const SAMPLE_PROPOSALS = [
     concepto_frase: "Propuesta en desarrollo.",
     concepto_desarrollo: "Borrador de trabajo.",
     sitio_oportunidades: "En desarrollo.",
-    sitio_condicionantes: "En desarrollo.",
     volumetria_estrategia: "En desarrollo.",
     volumetria_organizacion: "En desarrollo.",
     fachada_material_principal: "Por definir.",
@@ -119,9 +126,87 @@ const SAMPLE_PROPOSALS = [
   },
 ];
 
+const BUCKET = "seleccion-nauno-files";
+
+/** PDF mínimo generado al vuelo: el repo no trae un masterplan de ejemplo. */
+async function makeSampleMasterplanPdf() {
+  const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
+  const doc = await PDFDocument.create();
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  for (const [n, titulo] of [
+    ["1", "Implantacion general"],
+    ["2", "Etapa I - unidades licenciadas"],
+  ]) {
+    const page = doc.addPage([595.28, 841.89]);
+    page.drawText(`Masterplan de ejemplo - lamina ${n}`, {
+      x: 56,
+      y: 760,
+      size: 16,
+      font,
+      color: rgb(0.13, 0.18, 0.14),
+    });
+    page.drawText(titulo, { x: 56, y: 735, size: 11, font, color: rgb(0.45, 0.48, 0.45) });
+    page.drawRectangle({
+      x: 56,
+      y: 200,
+      width: 483,
+      height: 500,
+      borderColor: rgb(0.6, 0.6, 0.6),
+      borderWidth: 1,
+    });
+  }
+  return Buffer.from(await doc.save());
+}
+
+async function uploadSeedFiles(proposalId, files) {
+  const { readFile } = await import("node:fs/promises");
+  const { randomUUID } = await import("node:crypto");
+
+  for (const file of files) {
+    let bytes;
+    let fileName;
+    if (file.source.startsWith("generated:")) {
+      fileName = file.source.slice("generated:".length);
+      bytes = await makeSampleMasterplanPdf();
+    } else {
+      fileName = file.source.split("/").pop();
+      bytes = await readFile(file.source);
+    }
+
+    const ext = fileName.split(".").pop().toLowerCase();
+    const contentType =
+      ext === "pdf" ? "application/pdf" : ext === "png" ? "image/png" : "image/jpeg";
+    const storagePath = `${proposalId}/${randomUUID()}-${fileName.replace(/[^a-zA-Z0-9.\-_]/g, "_")}`;
+
+    const { error: upErr } = await supabase.storage
+      .from(BUCKET)
+      .upload(storagePath, bytes, { contentType });
+    if (upErr) throw upErr;
+
+    const { error: rowErr } = await supabase.from("proposal_files").insert({
+      proposal_id: proposalId,
+      kind: file.kind,
+      storage_path: storagePath,
+      file_name: fileName,
+    });
+    if (rowErr) {
+      // 23514 = el check constraint no conoce este kind todavía.
+      if (rowErr.code === "23514") {
+        await supabase.storage.from(BUCKET).remove([storagePath]);
+        console.warn(
+          `   OMITIDO ${file.kind}: la base aún no acepta este tipo. Aplique la migración 0004.`
+        );
+        continue;
+      }
+      throw rowErr;
+    }
+    console.log(`   adjunto ${file.kind}: ${fileName}`);
+  }
+}
+
 async function seedProposals() {
   for (const sample of SAMPLE_PROPOSALS) {
-    const { identification, ...proposalData } = sample;
+    const { identification, files, ...proposalData } = sample;
 
     const { data: existing } = await supabase
       .from("proposals")
@@ -151,12 +236,8 @@ async function seedProposals() {
     }
 
     console.log(`Propuesta ${sample.proposal_code} creada (${sample.status}).`);
+    if (files?.length) await uploadSeedFiles(proposal.id, files);
   }
-  console.log(
-    "\nNota: las propuestas de ejemplo no tienen archivos adjuntos (Master Plan / Referentes)." +
-      " Sirven para probar login, dashboard, detalle y la rúbrica de evaluación — para probar la" +
-      " subida de archivos, envía una propuesta real desde /seleccion/participar."
-  );
 }
 
 async function main() {
