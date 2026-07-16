@@ -32,7 +32,7 @@ export default function StepFases({
   const {
     register,
     handleSubmit,
-    formState: { isSubmitting },
+    formState: { errors, isSubmitting },
   } = useForm<z.input<typeof fasesSchema>, unknown, FasesValues>({
     resolver: zodResolver(fasesSchema),
     defaultValues: {
@@ -60,22 +60,40 @@ export default function StepFases({
     <form onSubmit={handleSubmit(onSubmit)}>
       <StepHeading
         title="Fases de diseño"
-        description="Su hoja de ruta desde el anteproyecto hasta la documentación técnica."
+        description="Es importante conocer su hoja de ruta desde el anteproyecto hasta la documentación técnica. Relacione en semanas los tiempos para cada entrega."
       />
 
+      {/* La etiqueta lleva alto fijo y los errores van fuera de la rejilla: así los
+          cuatro campos quedan al mismo nivel aunque el nombre de la fase ocupe dos
+          líneas o alguna fase quede sin diligenciar. */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {FASES.map((f) => (
-          <Field key={f.key} label={`${f.n}. ${f.label}`}>
-            <div className="flex items-center gap-2">
-              <TextInput type="number" min={0} {...register(`fases_json.${f.key}`)} className="w-20" />
-              <span className="text-xs text-forest/50">semanas</span>
+          <label key={f.key} className="block">
+            <span className="eyebrow flex min-h-[2.5rem] items-start text-xs leading-snug text-taupe-dark">
+              {f.n}. {f.label}
+            </span>
+            <div className="mt-1.5 flex items-baseline gap-1.5">
+              <TextInput
+                type="number"
+                min={1}
+                {...register(`fases_json.${f.key}`)}
+                className="min-w-0 flex-1"
+                aria-invalid={errors.fases_json?.[f.key] ? true : undefined}
+              />
+              <span className="flex-none text-xs text-forest/50">semanas</span>
             </div>
-          </Field>
+          </label>
         ))}
       </div>
 
+      {errors.fases_json && (
+        <p className="mt-2 text-xs text-red-600">
+          Indique las semanas de cada fase (un número mayor que cero).
+        </p>
+      )}
+
       <div className="mt-6">
-        <Field label="Enfoque de trabajo (opcional)">
+        <Field label="Metodología de trabajo" error={errors.enfoque_trabajo?.message}>
           <TextArea
             {...register("enfoque_trabajo")}
             placeholder="Cómo aborda su equipo el anteproyecto: metodología, coordinación y entregables por fase…"

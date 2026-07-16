@@ -63,7 +63,7 @@ export default function StepCode({
           fases de diseño.
         </p>
         <ul className="mt-4 space-y-2 text-xs">
-          <li>· Complete todas las secciones: concepto, análisis de sitio, materialidad y volumetría, fachada, imagen del proyecto y fases.</li>
+          <li>· Complete todas las secciones: concepto, análisis de sitio, volumetría, fachada, imagen del proyecto y fases.</li>
           <li>· Suba imágenes sin logos ni marcas identificables.</li>
           <li>· Sus datos reales van al final, en un formulario de identificación sellado aparte.</li>
         </ul>

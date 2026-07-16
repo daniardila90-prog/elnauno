@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getClientIp, withinRateLimit } from "@/lib/rate-limit";
-import { ALLOWED_EXTENSIONS, ALLOWED_KINDS, BUCKET, extensionOf } from "@/lib/uploads";
+import { BUCKET, KIND_RULES, extensionOf, isUploadKind } from "@/lib/uploads";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -46,10 +46,10 @@ export async function POST(req: Request, { params }: RouteParams) {
   const storagePath = String(body.storage_path ?? "");
   const fileName = String(body.file_name ?? "");
 
-  if (!ALLOWED_KINDS.includes(kind)) {
+  if (!isUploadKind(kind)) {
     return NextResponse.json({ error: "Sección de archivo inválida." }, { status: 422 });
   }
-  if (!ALLOWED_EXTENSIONS.includes(extensionOf(fileName))) {
+  if (!KIND_RULES[kind].extensions.includes(extensionOf(fileName) as never)) {
     return NextResponse.json({ error: "Formato no permitido." }, { status: 422 });
   }
   // La ruta debe pertenecer a esta propuesta: evita registrar objetos ajenos.

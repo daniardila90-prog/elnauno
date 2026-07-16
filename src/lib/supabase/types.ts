@@ -1,6 +1,6 @@
 export type ProposalStatus = "draft" | "submitted";
 
-export type FileKind = "concepto" | "masterplan" | "volumetria" | "proyecto";
+export type FileKind = "concepto" | "masterplan" | "volumetria" | "organizacion" | "proyecto";
 
 export interface FasesJson {
   anteproyecto_semanas?: number;

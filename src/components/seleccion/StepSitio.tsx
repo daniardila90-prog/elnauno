@@ -30,7 +30,6 @@ export default function StepSitio({
     resolver: zodResolver(sitioSchema),
     defaultValues: {
       sitio_oportunidades: initial?.sitio_oportunidades ?? "",
-      sitio_condicionantes: initial?.sitio_condicionantes ?? "",
     },
   });
 
@@ -53,17 +52,18 @@ export default function StepSitio({
     <form onSubmit={handleSubmit(onSubmit)}>
       <StepHeading
         title="Análisis de sitio y emplazamiento"
-        description="Cómo el lote, el clima, las visuales y el contexto informan la implantación del volumen."
+        description="De acuerdo a las condiciones del lote, clima, visuales y contexto normativo, realice una propuesta para el masterplan del lote. Tome como base las unidades licenciadas de acuerdo al archivo enviado por el organizador."
       />
 
       <div className="space-y-5">
         <div>
           <span className="eyebrow block text-xs text-taupe-dark">Plano de implantación (Masterplan)</span>
           <p className="mt-0.5 text-xs text-forest/50">
-            Anexe la planta de implantación que se imagina para el Masterplan del lote. PDF, imagen o CAD, sin logos ni marcas.
+            Anexe la planta de implantación que se imagina para el Masterplan del lote. Solo en PDF,
+            sin logos ni marcas.
           </p>
           <div className="mt-2">
-            <FileUploadList proposalId={proposalId} kind="masterplan" multiple onError={setServerError} />
+            <FileUploadList proposalId={proposalId} kind="masterplan" onError={setServerError} />
           </div>
         </div>
 
@@ -72,14 +72,6 @@ export default function StepSitio({
             rows={3}
             {...register("sitio_oportunidades")}
             placeholder="Visuales, orientación solar, accesos, topografía…"
-          />
-        </Field>
-
-        <Field label="Condicionantes y normativa" error={errors.sitio_condicionantes?.message}>
-          <TextArea
-            rows={3}
-            {...register("sitio_condicionantes")}
-            placeholder="Retiros, alturas, POT, restricciones a considerar…"
           />
         </Field>
       </div>

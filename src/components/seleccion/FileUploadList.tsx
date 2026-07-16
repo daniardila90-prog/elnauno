@@ -1,9 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { FileKind, ProposalFile } from "@/lib/supabase/types";
+import type { ProposalFile } from "@/lib/supabase/types";
 import { createClient } from "@/lib/supabase/client";
-import { ACCEPT_ATTR, BUCKET, MAX_SIZE_BYTES, extensionOf, ALLOWED_EXTENSIONS } from "@/lib/uploads";
+import {
+  BUCKET,
+  KIND_RULES,
+  MAX_SIZE_BYTES,
+  acceptAttr,
+  extensionOf,
+  formatsLabel,
+  type UploadKind,
+} from "@/lib/uploads";
 
 /** Lee la respuesta como JSON sin reventar si el servidor devolvió texto/HTML. */
 async function readError(res: Response, fallback: string): Promise<string> {
@@ -19,19 +27,19 @@ async function readError(res: Response, fallback: string): Promise<string> {
 export default function FileUploadList({
   proposalId,
   kind,
-  multiple = false,
   onError,
   onCountChange,
 }: {
   proposalId: string;
-  kind: FileKind;
-  multiple?: boolean;
+  kind: UploadKind;
   onError?: (message: string | null) => void;
   onCountChange?: (count: number) => void;
 }) {
+  const rule = KIND_RULES[kind];
   const [files, setFiles] = useState<ProposalFile[]>([]);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
+  const full = files.length >= rule.max;
 
   useEffect(() => {
     fetch(`/api/seleccion/proposals/${proposalId}/files`)
@@ -49,8 +57,8 @@ export default function FileUploadList({
   async function uploadOne(file: File) {
     // Validación en el navegador para dar feedback inmediato.
     const ext = extensionOf(file.name);
-    if (!ALLOWED_EXTENSIONS.includes(ext)) {
-      throw new Error(`Formato no permitido (.${ext}). Use PDF, imágenes, DWG/DXF o ZIP.`);
+    if (!rule.extensions.includes(ext as never)) {
+      throw new Error(`Formato no permitido (.${ext}). En esta sección se acepta ${formatsLabel(kind)}.`);
     }
     if (file.size > MAX_SIZE_BYTES) {
       throw new Error(
@@ -94,6 +102,18 @@ export default function FileUploadList({
     const selected = Array.from(e.target.files ?? []);
     if (selected.length === 0) return;
     onError?.(null);
+
+    if (files.length + selected.length > rule.max) {
+      const restantes = rule.max - files.length;
+      onError?.(
+        restantes === 0
+          ? `Ya subió el máximo de ${rule.max} ${rule.max === 1 ? "archivo" : "archivos"} en esta sección. Elimine uno para reemplazarlo.`
+          : `Solo puede subir ${rule.max} ${rule.max === 1 ? "archivo" : "archivos"} en esta sección: le ${restantes === 1 ? "queda 1" : `quedan ${restantes}`}.`
+      );
+      e.target.value = "";
+      return;
+    }
+
     setUploading(true);
     try {
       for (let i = 0; i < selected.length; i++) {
@@ -132,15 +152,19 @@ export default function FileUploadList({
 
   return (
     <div>
-      <label className="inline-flex cursor-pointer items-center rounded-lg border border-dashed border-taupe/50 bg-sand/20 px-4 py-2 text-sm text-forest/70 hover:bg-sand/40">
-        {uploading ? "Subiendo…" : multiple ? "Elegir archivos" : "Elegir archivo"}
+      <label
+        className={`inline-flex items-center rounded-lg border border-dashed border-taupe/50 bg-sand/20 px-4 py-2 text-sm text-forest/70 ${
+          full || uploading ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-sand/40"
+        }`}
+      >
+        {uploading ? "Subiendo…" : full ? "Máximo alcanzado" : rule.max > 1 ? "Elegir archivos" : "Elegir archivo"}
         <input
           type="file"
-          multiple={multiple}
-          accept={ACCEPT_ATTR}
+          multiple={rule.max > 1}
+          accept={acceptAttr(kind)}
           className="hidden"
           onChange={handleUpload}
-          disabled={uploading}
+          disabled={uploading || full}
         />
       </label>
 

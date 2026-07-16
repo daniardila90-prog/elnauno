@@ -18,7 +18,7 @@ const STEPS = [
   "Inicio",
   "Concepto",
   "Análisis de sitio",
-  "Materialidad y volumetría",
+  "Volumetría",
   "Fachada",
   "Imagen del proyecto",
   "Fases de diseño",

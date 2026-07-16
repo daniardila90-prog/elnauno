@@ -2,11 +2,12 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getClientIp, withinRateLimit } from "@/lib/rate-limit";
 import {
-  ALLOWED_EXTENSIONS,
-  ALLOWED_KINDS,
   BUCKET,
+  KIND_RULES,
   MAX_SIZE_BYTES,
   extensionOf,
+  formatsLabel,
+  isUploadKind,
   safeStoragePath,
 } from "@/lib/uploads";
 
@@ -53,22 +54,41 @@ export async function POST(req: Request, { params }: RouteParams) {
   const fileName = String(body.file_name ?? "");
   const size = Number(body.size ?? 0);
 
-  if (!ALLOWED_KINDS.includes(kind)) {
+  if (!isUploadKind(kind)) {
     return NextResponse.json({ error: "Sección de archivo inválida." }, { status: 422 });
   }
   if (!fileName) {
     return NextResponse.json({ error: "Nombre de archivo requerido." }, { status: 422 });
   }
+  const rule = KIND_RULES[kind];
   const ext = extensionOf(fileName);
-  if (!ALLOWED_EXTENSIONS.includes(ext)) {
+  if (!rule.extensions.includes(ext as never)) {
     return NextResponse.json(
-      { error: `Formato no permitido (.${ext}). Use PDF, imágenes, DWG/DXF o ZIP.` },
+      { error: `Formato no permitido (.${ext}). En esta sección se acepta ${formatsLabel(kind)}.` },
       { status: 422 }
     );
   }
   if (size > MAX_SIZE_BYTES) {
     return NextResponse.json(
       { error: "El archivo supera el límite de 50 MB." },
+      { status: 422 }
+    );
+  }
+
+  // El máximo por sección se valida aquí y no solo en el navegador: la subida
+  // firmada se pide por HTTP y el conteo del cliente es fácil de saltar.
+  const { count } = await supabase
+    .from("proposal_files")
+    .select("id", { count: "exact", head: true })
+    .eq("proposal_id", id)
+    .eq("kind", kind);
+  if ((count ?? 0) >= rule.max) {
+    return NextResponse.json(
+      {
+        error: `Ya subió el máximo de ${rule.max} ${
+          rule.max === 1 ? "archivo" : "archivos"
+        } en esta sección. Elimine uno para reemplazarlo.`,
+      },
       { status: 422 }
     );
   }

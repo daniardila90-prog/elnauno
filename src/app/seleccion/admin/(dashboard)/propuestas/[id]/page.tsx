@@ -42,6 +42,7 @@ export default async function ProposalDetailPage({
   const conceptoFiles = filesWithUrls.filter((f) => f.kind === "concepto");
   const masterplanFiles = filesWithUrls.filter((f) => f.kind === "masterplan");
   const volumetriaFiles = filesWithUrls.filter((f) => f.kind === "volumetria");
+  const organizacionFiles = filesWithUrls.filter((f) => f.kind === "organizacion");
   const proyectoFiles = filesWithUrls.filter((f) => f.kind === "proyecto");
 
   const fases = (proposal.fases_json ?? {}) as Record<string, number | undefined>;
@@ -73,13 +74,16 @@ export default async function ProposalDetailPage({
           <Section title="Análisis de sitio y emplazamiento">
             <FileList files={masterplanFiles} empty="Sin plano de implantación (Masterplan)." />
             <Field label="Oportunidades del sitio" value={proposal.sitio_oportunidades} />
-            <Field label="Condicionantes y normativa" value={proposal.sitio_condicionantes} />
           </Section>
 
-          <Section title="Materialidad y volumetría">
+          <Section title="Volumetría">
             <Field label="Estrategia volumétrica" value={proposal.volumetria_estrategia} />
-            <Field label="Organización general" value={proposal.volumetria_organizacion} />
-            <FileList files={volumetriaFiles} empty="Sin imagen de referencia." />
+            <FileList files={volumetriaFiles} empty="Sin imagen de la estrategia volumétrica." />
+            <Field
+              label="Organización funcional y circulaciones"
+              value={proposal.volumetria_organizacion}
+            />
+            <FileList files={organizacionFiles} empty="Sin imagen de la organización funcional." />
           </Section>
 
           <Section title="Materialidad de fachada">
@@ -103,7 +107,7 @@ export default async function ProposalDetailPage({
                 <Field key={key} label={label} value={fases[key] != null ? `${fases[key]} semanas` : null} />
               ))}
             </div>
-            <Field label="Enfoque de trabajo" value={proposal.enfoque_trabajo} />
+            <Field label="Metodología de trabajo" value={proposal.enfoque_trabajo} />
           </Section>
 
           <Section title="Identidad">

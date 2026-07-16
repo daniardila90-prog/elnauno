@@ -9,12 +9,31 @@ const REQUIRED_PROPOSAL_FIELDS = [
   "concepto_frase",
   "concepto_desarrollo",
   "sitio_oportunidades",
-  "sitio_condicionantes",
   "volumetria_estrategia",
   "volumetria_organizacion",
   "fachada_material_principal",
+  "fachada_material_secundario",
+  "fachada_acabado",
+  "fachada_carpinteria",
   "fachada_estrategia",
   "fachada_intencion",
+  "enfoque_trabajo",
+] as const;
+
+/** Secciones cuyo archivo es obligatorio para poder enviar la propuesta. */
+const REQUIRED_FILE_KINDS = [
+  "concepto",
+  "masterplan",
+  "volumetria",
+  "organizacion",
+  "proyecto",
+] as const;
+
+const FASES_KEYS = [
+  "anteproyecto_semanas",
+  "proyecto_semanas",
+  "coordinacion_semanas",
+  "documentos_semanas",
 ] as const;
 
 export async function POST(req: Request, { params }: RouteParams) {
@@ -56,20 +75,23 @@ export async function POST(req: Request, { params }: RouteParams) {
     (field) => !proposal[field] || String(proposal[field]).trim() === ""
   );
 
+  const fases = (proposal.fases_json ?? {}) as Record<string, unknown>;
+  const missingFases = FASES_KEYS.filter((key) => !(Number(fases[key]) > 0));
+
   const { data: files } = await supabase
     .from("proposal_files")
     .select("kind")
     .eq("proposal_id", id);
-  const hasMasterplan = (files ?? []).some((f) => f.kind === "masterplan");
-  const hasProyecto = (files ?? []).some((f) => f.kind === "proyecto");
+  const kinds = new Set((files ?? []).map((f) => f.kind));
+  const missingFiles = REQUIRED_FILE_KINDS.filter((kind) => !kinds.has(kind));
 
-  if (missing.length > 0 || !hasMasterplan || !hasProyecto) {
+  if (missing.length > 0 || missingFases.length > 0 || missingFiles.length > 0) {
     return NextResponse.json(
       {
         error: "La propuesta está incompleta.",
         missing_fields: missing,
-        missing_masterplan: !hasMasterplan,
-        missing_proyecto: !hasProyecto,
+        missing_fases: missingFases,
+        missing_files: missingFiles,
       },
       { status: 422 }
     );

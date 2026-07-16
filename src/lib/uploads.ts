@@ -2,30 +2,44 @@
 
 export const BUCKET = "seleccion-nauno-files";
 
-export const ALLOWED_KINDS = ["concepto", "masterplan", "volumetria", "proyecto"];
-
 /** Límite por archivo. Supabase Storage lo permite; Vercel NO se usa para los bytes. */
 export const MAX_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB
 
 /**
- * Solo formatos de entrega esperados (planos, imágenes, PDF, CAD, comprimidos).
+ * Reglas de entrega por sección: qué formatos acepta y cuántos archivos admite.
+ * Cada sección pide algo distinto, así que el formato y el máximo se definen aquí
+ * y los usan tanto el formulario como la ruta que firma la subida.
  * Se valida por extensión porque el content-type lo pone el cliente.
  */
-export const ALLOWED_EXTENSIONS = [
-  "pdf",
-  "jpg",
-  "jpeg",
-  "png",
-  "webp",
-  "gif",
-  "tif",
-  "tiff",
-  "dwg",
-  "dxf",
-  "zip",
-  "rar",
-  "7z",
-];
+export const KIND_RULES = {
+  concepto: { extensions: ["pdf", "png"], max: 1 },
+  masterplan: { extensions: ["pdf"], max: 1 },
+  volumetria: { extensions: ["pdf", "png", "jpg", "jpeg"], max: 1 },
+  organizacion: { extensions: ["pdf", "png", "jpg", "jpeg"], max: 1 },
+  proyecto: { extensions: ["pdf", "png", "jpg", "jpeg"], max: 2 },
+} as const;
+
+export type UploadKind = keyof typeof KIND_RULES;
+
+export const ALLOWED_KINDS = Object.keys(KIND_RULES) as UploadKind[];
+
+export function isUploadKind(value: string): value is UploadKind {
+  return Object.hasOwn(KIND_RULES, value);
+}
+
+/** Formatos de una sección, listos para el atributo accept del input. */
+export function acceptAttr(kind: UploadKind): string {
+  return KIND_RULES[kind].extensions.map((e) => `.${e}`).join(",");
+}
+
+/** Formatos de una sección en texto legible: "PDF o PNG". */
+export function formatsLabel(kind: UploadKind): string {
+  const names = [...new Set(KIND_RULES[kind].extensions.map((e) => (e === "jpeg" ? "jpg" : e)))].map(
+    (e) => e.toUpperCase()
+  );
+  if (names.length === 1) return names[0];
+  return `${names.slice(0, -1).join(", ")} o ${names[names.length - 1]}`;
+}
 
 export function extensionOf(fileName: string): string {
   return fileName.split(".").pop()?.toLowerCase() ?? "";
@@ -36,7 +50,3 @@ export function safeStoragePath(proposalId: string, fileName: string): string {
   const safeName = fileName.replace(/[^a-zA-Z0-9.\-_]/g, "_");
   return `${proposalId}/${crypto.randomUUID()}-${safeName}`;
 }
-
-/** Texto de ayuda para el usuario. */
-export const ACCEPT_ATTR =
-  ".pdf,.jpg,.jpeg,.png,.webp,.gif,.tif,.tiff,.dwg,.dxf,.zip,.rar,.7z";

@@ -64,13 +64,13 @@ export default function StepFachada({
           <Field label="Material principal" error={errors.fachada_material_principal?.message}>
             <TextInput {...register("fachada_material_principal")} placeholder="Ej.: concreto a la vista" />
           </Field>
-          <Field label="Material secundario (opcional)" error={errors.fachada_material_secundario?.message}>
+          <Field label="Material secundario" error={errors.fachada_material_secundario?.message}>
             <TextInput {...register("fachada_material_secundario")} placeholder="Ej.: madera local" />
           </Field>
-          <Field label="Acabado / textura (opcional)" error={errors.fachada_acabado?.message}>
+          <Field label="Acabado / textura" error={errors.fachada_acabado?.message}>
             <TextInput {...register("fachada_acabado")} placeholder="Ej.: microtexturado mate" />
           </Field>
-          <Field label="Carpintería / vidrio (opcional)" error={errors.fachada_carpinteria?.message}>
+          <Field label="Carpintería / vidrio" error={errors.fachada_carpinteria?.message}>
             <TextInput {...register("fachada_carpinteria")} placeholder="Ej.: aluminio negro, vidrio control solar" />
           </Field>
         </div>

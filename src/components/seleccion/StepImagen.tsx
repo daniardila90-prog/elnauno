@@ -35,12 +35,13 @@ export default function StepImagen({
         <span className="eyebrow block text-xs text-taupe-dark">
           Imágenes de referencia / perspectiva exterior
         </span>
-        <p className="mt-0.5 text-xs text-forest/50">Sin logos ni marcas identificables.</p>
+        <p className="mt-0.5 text-xs text-forest/50">
+          Máximo 2 imágenes. Sin logos ni marcas identificables.
+        </p>
         <div className="mt-2">
           <FileUploadList
             proposalId={proposalId}
             kind="proyecto"
-            multiple
             onError={setError}
             onCountChange={(n) => setHasFiles(n > 0)}
           />

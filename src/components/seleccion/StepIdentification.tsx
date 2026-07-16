@@ -31,9 +31,9 @@ export default function StepIdentification({
     });
     if (!res.ok) {
       const body = await res.json();
-      if (body.missing_fields?.length || body.missing_masterplan || body.missing_proyecto) {
+      if (body.missing_fields?.length || body.missing_fases?.length || body.missing_files?.length) {
         setServerError(
-          "La propuesta está incompleta. Revisa que hayas diligenciado todas las secciones y subido el plano de implantación (Masterplan) y al menos una imagen del proyecto."
+          "La propuesta está incompleta. Vuelva atrás y revise que haya diligenciado todas las secciones, indicado las semanas de cada fase y subido los archivos de cada paso."
         );
       } else {
         setServerError(body.error ?? "No se pudo enviar la propuesta.");

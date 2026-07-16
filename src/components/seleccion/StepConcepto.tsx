@@ -22,6 +22,7 @@ export default function StepConcepto({
   onBack: () => void;
 }) {
   const [serverError, setServerError] = useState<string | null>(null);
+  const [fileCount, setFileCount] = useState<number | null>(null);
   const {
     register,
     handleSubmit,
@@ -36,6 +37,10 @@ export default function StepConcepto({
 
   async function onSubmit(values: ConceptoValues) {
     setServerError(null);
+    if (fileCount === 0) {
+      setServerError("Suba la imagen conceptual o moodboard para continuar.");
+      return;
+    }
     const res = await fetch(`/api/seleccion/proposals/${proposalId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -53,7 +58,7 @@ export default function StepConcepto({
     <form onSubmit={handleSubmit(onSubmit)}>
       <StepHeading
         title="Concepto de diseño"
-        description="El concepto del anteproyecto en una frase y su desarrollo."
+        description="Describa el concepto del anteproyecto en una frase y su desarrollo."
       />
 
       <div className="space-y-5">
@@ -73,10 +78,17 @@ export default function StepConcepto({
         </Field>
 
         <div>
-          <span className="eyebrow block text-xs text-taupe-dark">Imagen conceptual o moodboard (opcional)</span>
-          <p className="mt-0.5 text-xs text-forest/50">Imagen que comunica la atmósfera del concepto. Sin logos ni marcas.</p>
+          <span className="eyebrow block text-xs text-taupe-dark">Imagen conceptual o moodboard</span>
+          <p className="mt-0.5 text-xs text-forest/50">
+            Un solo archivo (PDF o PNG) que comunique la atmósfera del concepto. Sin logos ni marcas.
+          </p>
           <div className="mt-2">
-            <FileUploadList proposalId={proposalId} kind="concepto" multiple onError={setServerError} />
+            <FileUploadList
+              proposalId={proposalId}
+              kind="concepto"
+              onError={setServerError}
+              onCountChange={setFileCount}
+            />
           </div>
         </div>
       </div>
